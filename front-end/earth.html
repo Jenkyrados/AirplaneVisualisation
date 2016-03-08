@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="http://d3js.org/queue.v1.min.js"></script>
+<script src="d3.geo.zoom.js"></script>
+</head>
+<style type="text/css">
+
+.water {
+  fill: #00248F;
+}
+
+path {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.land {
+  fill: #A98B6F;
+  stroke: #FFF;
+  stroke-width: 0.7px;
+}
+
+.route {
+  stroke: red;
+  stroke-width: 2px;
+}
+.point {
+    fill: red;
+    opacity:0.7;
+    }
+
+</style>
+<body>
+  <script>
+
+  var width = 500,
+  height = 500,
+  sens = 0.25;
+
+  //Setting projection
+
+  var projection = d3.geo.orthographic()
+  .scale(245)
+  .rotate([0, 0])
+  .translate([width / 2, height / 2])
+  .clipAngle(90 + 1e-6).precision(.3);
+
+  var path = d3.geo.path()
+  .projection(projection);
+  //SVG container
+
+  
+  var zoom = d3.geo.zoom()  
+  .projection(projection)
+  .on('zoom', function(){
+  svg.selectAll('path').attr('d',path);
+  });
+
+  var svg = d3.select("body").append("svg")
+  .attr("width", width)
+  .attr("height", height)
+  .call(zoom)
+   .on("mousedown.zoom", null);
+
+   //Adding water
+
+  svg.append("path")
+  .datum({type: "Sphere"})
+  .attr("class", "water")
+  .attr("d", path)
+  .call(d3.behavior.drag()
+    .origin(function() { var r = projection.rotate(); return {x: r[0] / sens, y: -r[1] / sens}; })
+    .on("drag", function() {
+      var rotate = projection.rotate();
+      projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
+      svg.selectAll("path").attr("d", path);
+  }));
+
+  queue()
+  .defer(d3.json, "countries.topo.json")
+  .await(ready);
+
+  //Main function
+  var routes = {};
+  var routes2 = {};
+  function ready(error, world) {
+    var countries = topojson.feature(world, world.objects.countries).features;
+
+
+    //Drawing countries on the globe
+
+    var world = svg.selectAll("path.land")
+    .data(countries)
+    .enter().append("path")
+    .attr("class", "land")
+    .attr("d", path)
+
+    //Drag event
+
+    .call(d3.behavior.drag()
+      .origin(function() { var r = projection.rotate(); return {x: r[0] / sens, y: -r[1] / sens}; })
+      .on("drag", function() {
+        var rotate = projection.rotate();
+        projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
+        svg.selectAll("path").attr("d", path);
+      }));
+
+      // Linestrings will have to be created after the world to be visible, same for points.
+
+    d3.csv("example.csv"+ '?' + Math.floor(Math.random() * 1000), function(error, data) {
+      data.forEach(function(d){
+        routes2[d.Id] = svg.append("path")
+        .datum({type: "LineString", coordinates : d.Values.split(' ').map(function(e){return e.split(';').map(Number);})})
+        .attr("class", "route")
+        .attr("d",path)
+        .attr("start", +d.Start)
+        .attr("end", +d.End);
+        routes[d.Id] = d.Values.split(' ').map(function(e){return e.split(';').map(Number);});
+
+        });
+
+    transition(0);
+  });
+    
+  }
+  function transition(i){
+    var n = 0
+    d3.selectAll(".point")
+        .each(function(){
+          n++;
+        })
+    if (!n)
+      update(i)
+    else
+    d3.selectAll(".point")
+        .transition()
+        .delay(1000)
+        .remove()
+        .each('end',function(){n--; if(n<=0) update(i)});
+  };
+  function update(i){
+    for(var key in routes){
+          var d = routes[key];
+          if (d.length <= i)
+            continue;
+          svg.append("path")
+          .datum({type : "Point",coordinates :[d[i][0],d[i][1]]})
+          .attr("d",path.pointRadius(5))
+          .attr("class","point")
+        }
+    transition(i+1);
+  }
+  </script>
+</body>
+</html>
