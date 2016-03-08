@@ -8,6 +8,8 @@ import org.apache.spark.sql.functions.udf
 import com.databricks.spark.avro._
 import com.databricks.spark.csv._
 import org.apache.spark.sql._
+import org.apache.commons.io.FileUtils._
+import java.io.File
 import treater._
 
 
@@ -17,7 +19,7 @@ object TestApp {
     val sc = new SparkContext(conf)
     sc.setLogLevel("WARN")
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
-    FileUtils.deleteQuietly(new File(path))
+    deleteQuietly(new File("/Users/quentindauchy/Desktop/save"))
 
     import sqlContext.implicits._
     val localGetIcao = (arg: String) => {CustomDecoder.getIcao(arg)}
