@@ -32,7 +32,7 @@ import org.opensky.libadsb.msgs.AirbornePositionMsg;
 import org.opensky.libadsb.msgs.ModeSReply;
 import scala.Tuple2;
 import scala.Tuple3;
-import scala.Tuple4;
+import scala.Tuple5;
 import scala.collection.JavaConverters.*;
 
 public class CustomDecoder {
@@ -44,6 +44,7 @@ public class CustomDecoder {
 	// we store the position decoder for each aircraft
 	static HashMap<String, PositionDecoder> decs = new HashMap<String, PositionDecoder>();
 	private static PositionDecoder dec;
+	static final int frameTime = 60; // A frame = 1 min
 	public static String getIcao(String raw){
 		ModeSReply message;
 		try {
@@ -120,7 +121,7 @@ public class CustomDecoder {
 		}
 	}
 
-	public static Iterator<Tuple4<Double,Double,Double,String>> getNewLatLon(Tuple2<String,Iterable<org.apache.spark.sql.Row>> x){
+	public static Iterator<Tuple5<Integer,Double,Double,Double,String>> getNewLatLon(double minTime, Iterable<org.apache.spark.sql.Row> rows){
 		Comparator<Tuple3<Double,String,String>> compareRows = new Comparator<Tuple3<Double,String,String>>(){
 			public int compare(Tuple3<Double,String,String> rowA,
 				Tuple3<Double,String,String> rowB){
@@ -128,13 +129,14 @@ public class CustomDecoder {
 			}
 		};
 		List<Tuple3<Double,String,String>> rowList = new ArrayList<Tuple3<Double,String,String>>();
-		for(org.apache.spark.sql.Row row : x._2())
+		for(org.apache.spark.sql.Row row : rows)
 			rowList.add(new Tuple3<Double,String,String>(new Double(row.getDouble(0)),row.getString(1),row.getString(2)));
 		Collections.sort(rowList,compareRows);
 
-		List<Tuple4<Double,Double,Double,String>> l = new ArrayList<Tuple4<Double,Double,Double,String>>();
+		List<Tuple5<Integer,Double,Double,Double,String>> l = new ArrayList<Tuple5<Integer,Double,Double,Double,String>>();
 
 		PositionDecoder localdec = new PositionDecoder();
+		int frameNum = 0;
 		for(Tuple3<Double,String,String> row : rowList){
 			ModeSReply message;
 			try {
@@ -144,15 +146,27 @@ public class CustomDecoder {
 			catch(Exception e){
 				continue;
 			}
-			if(!x._1().equals(tools.toHexString(message.getIcao24())))
-				System.out.println("This shouldn't happen");
 			switch(message.getType()){
 				case ADSB_AIRBORN_POSITION:
 					AirbornePositionMsg airpos = (AirbornePositionMsg) message;
 					airpos.setNICSupplementA(localdec.getNICSupplementA());
 					Position current = localdec.decodePosition(row._1(),airpos);
-					if (current != null)
-						l.add(new Tuple4<Double,Double,Double,String>(row._1(),current.getLatitude(),current.getLongitude(),row._3()));
+					if (current != null){
+						if(frameNum == 0){
+							while(minTime < row._1()){
+							frameNum++;
+							minTime += frameTime;
+							}
+						}
+						else if (minTime > row._1()){
+							continue;
+						}
+						else {
+							minTime += frameTime;
+							frameNum++;
+						}
+						l.add(new Tuple5<Integer,Double,Double,Double,String>(new Integer(frameNum),row._1(),current.getLatitude(),current.getLongitude(),row._3()));
+					}
 					break;
 					default : break;
 			}
