@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Iterator;
+import java.util.Comparator;
+import java.util.Collections;
 
 import org.opensky.libadsb.Decoder;
 import org.opensky.libadsb.Position;
@@ -30,6 +32,7 @@ import org.opensky.libadsb.msgs.AirbornePositionMsg;
 import org.opensky.libadsb.msgs.ModeSReply;
 import scala.Tuple2;
 import scala.Tuple3;
+import scala.Tuple4;
 import scala.collection.JavaConverters.*;
 
 public class CustomDecoder {
@@ -42,13 +45,14 @@ public class CustomDecoder {
 	static HashMap<String, PositionDecoder> decs = new HashMap<String, PositionDecoder>();
 	private static PositionDecoder dec;
 	public static String getIcao(String raw){
+		ModeSReply message;
 		try {
-			msg = Decoder.genericDecoder(raw);
+			message = Decoder.genericDecoder(raw);
 		} catch (Exception e) {
 			return "thisisanerror";
 		}
-		if (tools.isZero(msg.getParity()) || msg.checkParity()) { // CRC is ok
-			return tools.toHexString(msg.getIcao24());
+		if (tools.isZero(message.getParity()) || message.checkParity()) { // CRC is ok
+			return tools.toHexString(message.getIcao24());
 		}
 		return "thisisanerror";
 	}
@@ -116,10 +120,42 @@ public class CustomDecoder {
 		}
 	}
 
-	public static Iterator<Tuple3<Double,String,String>> getNewLatLon(Tuple2<String,Iterable<org.apache.spark.sql.Row>> x){
-		List<Tuple3<Double,String,String>> l = new ArrayList<Tuple3<Double,String,String>>();
-		for(org.apache.spark.sql.Row row : x._2()){
-			l.add(new Tuple3<Double,String,String>(new Double(row.getDouble(0)),row.getString(1),row.getString(2)));		
+	public static Iterator<Tuple4<Double,Double,Double,String>> getNewLatLon(Tuple2<String,Iterable<org.apache.spark.sql.Row>> x){
+		Comparator<Tuple3<Double,String,String>> compareRows = new Comparator<Tuple3<Double,String,String>>(){
+			public int compare(Tuple3<Double,String,String> rowA,
+				Tuple3<Double,String,String> rowB){
+				return rowA._1().compareTo(rowB._1());
+			}
+		};
+		List<Tuple3<Double,String,String>> rowList = new ArrayList<Tuple3<Double,String,String>>();
+		for(org.apache.spark.sql.Row row : x._2())
+			rowList.add(new Tuple3<Double,String,String>(new Double(row.getDouble(0)),row.getString(1),row.getString(2)));
+		Collections.sort(rowList,compareRows);
+
+		List<Tuple4<Double,Double,Double,String>> l = new ArrayList<Tuple4<Double,Double,Double,String>>();
+
+		PositionDecoder localdec = new PositionDecoder();
+		for(Tuple3<Double,String,String> row : rowList){
+			ModeSReply message;
+			try {
+				message = Decoder.genericDecoder(row._2());
+			
+			}
+			catch(Exception e){
+				continue;
+			}
+			if(!x._1().equals(tools.toHexString(message.getIcao24())))
+				System.out.println("This shouldn't happen");
+			switch(message.getType()){
+				case ADSB_AIRBORN_POSITION:
+					AirbornePositionMsg airpos = (AirbornePositionMsg) message;
+					airpos.setNICSupplementA(localdec.getNICSupplementA());
+					Position current = localdec.decodePosition(row._1(),airpos);
+					if (current != null)
+						l.add(new Tuple4<Double,Double,Double,String>(row._1(),current.getLatitude(),current.getLongitude(),row._3()));
+					break;
+					default : break;
+			}
 		}
 		return l.iterator();
 	}

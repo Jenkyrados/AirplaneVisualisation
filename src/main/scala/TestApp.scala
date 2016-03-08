@@ -33,7 +33,7 @@ import treater._
           .rdd
           .groupBy(x => x(2))
           .flatMap(x => CustomDecoder.getNewLatLon((x._1.toString(),x._2.asJava)).asScala.toList)
-          .map(a => a._1+","+a._2+","+a._3).saveAsTextFile("/Users/quentindauchy/Desktop/save")
+          .map(a => a._1+","+a._2+","+a._3+","+a._4).saveAsTextFile("/Users/quentindauchy/Desktop/save")
 /*      val dfLonLat = dficao.
          .withColumn("latlon",sqlGetLatLon(dficao("rawMessage"),dficao("timeAtServer")))
       dfLonLat.write.format("com.databricks.spark.csv").save("/Users/quentindauchy/Desktop/home.csv")
