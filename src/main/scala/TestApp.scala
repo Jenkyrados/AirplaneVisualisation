@@ -1,4 +1,3 @@
-
 /* TestApp.scala */
 import collection.JavaConverters._
 import org.apache.spark.SparkContext
@@ -36,18 +35,13 @@ object TestApp {
         .filter("icao != 'thisisanerror'")
         .rdd
     val minTime = rddicao.min()(new Ordering[org.apache.spark.sql.Row]() {
-  override def compare(x: org.apache.spark.sql.Row, y: org.apache.spark.sql.Row): Int = 
-      Ordering[Double].compare(x(0).asInstanceOf[Double], y(0).asInstanceOf[Double])
-});
+      override def compare(x: org.apache.spark.sql.Row, y: org.apache.spark.sql.Row): Int = 
+          Ordering[Double].compare(x(0).asInstanceOf[Double], y(0).asInstanceOf[Double])
+    });
     rddicao
         .groupBy(x => x(2))
         .flatMap(x => CustomDecoder.getNewLatLon(minTime(0).asInstanceOf[Double],x._2.asJava).asScala.toList)
         .map(a => a._1+","+a._2+","+a._3+","+a._4+","+a._5).saveAsTextFile("/Users/quentindauchy/Desktop/save")
-/*      val dfLonLat = dficao.
-       .withColumn("latlon",sqlGetLatLon(dficao("rawMessage"),dficao("timeAtServer")))
-    dfLonLat.write.format("com.databricks.spark.csv").save("/Users/quentindauchy/Desktop/home.csv")
-    dfLonLat.show
-    dfLonLat.printSchema
-*/  }
+  }
 
 }
