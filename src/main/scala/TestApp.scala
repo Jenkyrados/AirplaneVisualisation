@@ -17,6 +17,7 @@ object TestApp {
     val sc = new SparkContext(conf)
     sc.setLogLevel("WARN")
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+    FileUtils.deleteQuietly(new File(path))
 
     import sqlContext.implicits._
     val localGetIcao = (arg: String) => {CustomDecoder.getIcao(arg)}
