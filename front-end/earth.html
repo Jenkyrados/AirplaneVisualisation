@@ -6,6 +6,8 @@
 <script src="http://d3js.org/topojson.v1.min.js"></script>
 <script src="http://d3js.org/queue.v1.min.js"></script>
 <script src="d3.geo.zoom.js"></script>
+<script src="d3.slider.js"></script>
+<link rel="stylesheet" type="text/css" href="d3.slider.css"/>
 </head>
 <style type="text/css">
 
@@ -33,13 +35,52 @@ path {
     opacity:0.7;
     }
 
+#play, #slider-container{
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: 20px;
+  width:100px;
+}
+#play{
+  width: 53px;
+  height: 53px;
+  border-radius: 5px;
+  margin-left: 20px;
+  cursor: pointer;
+  background: url("play.png");
+background-repeat:no-repeat;
+    -o-background-size: cover;
+    -moz-background-size: cover;
+    -webkit-background-size:cover;
+}
+
+#play:hover{
+}
+
+#play.pause{
+  background: url("pause.png");
+  background-repeat:no-repeat;
+    -o-background-size: cover;
+    -moz-background-size: cover;
+    -webkit-background-size:cover;
+}
 </style>
 <body>
+  <div id="play"></div>
+    <div id="slider-container">
+      <div id="slider-div"></div>
+    </div>
   <script>
 
   var width = 500,
   height = 500,
-  sens = 0.25;
+  sens = 0.25,
+  maxFrame = 0,
+  currentFrame = 0,
+  frameLength=1000,
+  isPlaying=false,
+  interval,
+  slider;
 
   //Setting projection
 
@@ -119,40 +160,113 @@ path {
         .attr("d",path)
         .attr("start", +d.Start)
         .attr("end", +d.End);
+        if (maxFrame < +d.End)
+          maxFrame = +d.End;
         routes[d.Id] = d.Values.split(' ').map(function(e){return e.split(';').map(Number);});
 
         });
+      createSlider();
 
-    transition(0);
+      d3.select("#play")
+      .attr("title","Play animation")
+      .on("click",function(){
+        if ( !isPlaying ){
+          isPlaying = true;
+          d3.select(this).classed("pause",true).attr("title","Pause animation");
+          animate();
+        } else {
+          isPlaying = false;
+          d3.select(this).classed("pause",false).attr("title","Play animation");
+          clearInterval( interval );
+        }
+      });
+        
   });
     
   }
+  // i is frame number
   function transition(i){
     var n = 0
     d3.selectAll(".point")
         .each(function(){
           n++;
         })
-    if (!n)
-      update(i)
-    else
+    if (n!= 0)
     d3.selectAll(".point")
         .transition()
-        .delay(1000)
         .remove()
-        .each('end',function(){n--; if(n<=0) update(i)});
+        .each('end',function(){n--; if(n<=0){update(i)}});
+    else update(i);
   };
   function update(i){
-    for(var key in routes){
+    console.log(i);
+   for(var key in routes){
           var d = routes[key];
-          if (d.length <= i)
+          var r = routes2[key];
+
+          if (r.attr("start") > i || r.attr("end") <=i)
             continue;
+          
           svg.append("path")
-          .datum({type : "Point",coordinates :[d[i][0],d[i][1]]})
+          .datum({type : "Point",coordinates :[d[i-r.attr("start")][0],d[i-r.attr("start")][1]]})
           .attr("d",path.pointRadius(5))
           .attr("class","point")
         }
-    transition(i+1);
+  }
+  function createSlider(){
+
+  sliderScale = d3.scale.linear().domain([0,maxFrame]);
+
+  var val = slider ? slider.value() : 0;
+
+  slider = d3.slider()
+    .scale( sliderScale )
+    .on("slide",function(event,value){
+      if ( isPlaying ){
+        clearInterval(interval);
+      }
+      currentFrame = value;
+      transition(value);
+    })
+    .on("slideend",function(){
+      if ( isPlaying ) animate();
+    })
+    .on("slidestart",function(){
+      d3.select("#slider-div").on("mousemove",null)
+    })
+    .value(val);
+
+    d3.select("#slider-div").remove();
+
+  d3.select("#slider-container")
+    .append("div")
+    .attr("id","slider-div")
+    .call( slider );
+
+    d3.select("#slider-div a").on("mousemove",function(){
+     d3.event.stopPropagation();
+    })
+  }
+  function animate(){
+  interval = setInterval( function(){
+    currentFrame++;
+
+    if ( currentFrame == maxFrame +1 ) currentFrame = 0;
+
+    d3.select("#slider-div .d3-slider-handle")
+      .style("left", 100*currentFrame/maxFrame + "%" );
+    slider.value(currentFrame)
+
+    transition(currentFrame);
+
+    if ( currentFrame == maxFrame ){
+      isPlaying = false;
+      d3.select("#play").classed("pause",false).attr("title","Play animation");
+      clearInterval( interval );
+      return;
+    }
+
+  },frameLength);
   }
   </script>
 </body>
