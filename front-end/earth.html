@@ -116,9 +116,17 @@ background-repeat:no-repeat;
   .call(d3.behavior.drag()
     .origin(function() { var r = projection.rotate(); return {x: r[0] / sens, y: -r[1] / sens}; })
     .on("drag", function() {
-      var rotate = projection.rotate();
-      projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
-      svg.selectAll("path").attr("d", path);
+      var wasPlaying = isPlaying;
+        isPlaying = false;
+        d3.selectAll(".point")
+          .transition()
+          .remove()
+        
+        var rotate = projection.rotate();
+        projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
+        update(currentFrame);
+        isPlaying = wasPlaying;
+        svg.selectAll("path").attr("d", path);
   }));
 
   queue()
@@ -145,8 +153,16 @@ background-repeat:no-repeat;
     .call(d3.behavior.drag()
       .origin(function() { var r = projection.rotate(); return {x: r[0] / sens, y: -r[1] / sens}; })
       .on("drag", function() {
+        var wasPlaying = isPlaying;
+        isPlaying = false;
+        d3.selectAll(".point")
+          .transition()
+          .remove()
+        
         var rotate = projection.rotate();
         projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
+        update(currentFrame);
+        isPlaying = wasPlaying;
         svg.selectAll("path").attr("d", path);
       }));
 
@@ -199,7 +215,6 @@ background-repeat:no-repeat;
     else update(i);
   };
   function update(i){
-    console.log(i);
    for(var key in routes){
           var d = routes[key];
           var r = routes2[key];
@@ -259,7 +274,7 @@ background-repeat:no-repeat;
 
     transition(currentFrame);
 
-    if ( currentFrame == maxFrame ){
+    if ( currentFrame == maxFrame || isPlaying == false){
       isPlaying = false;
       d3.select("#play").classed("pause",false).attr("title","Play animation");
       clearInterval( interval );
