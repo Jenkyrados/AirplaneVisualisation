@@ -32,6 +32,7 @@ import org.opensky.libadsb.msgs.AirbornePositionMsg;
 import org.opensky.libadsb.msgs.ModeSReply;
 import scala.Tuple2;
 import scala.Tuple3;
+import scala.Tuple4;
 import scala.Tuple5;
 import scala.collection.JavaConverters.*;
 
@@ -71,7 +72,7 @@ public class CustomDecoder {
 		}
 	}
 
-	public static Iterator<Tuple5<Integer,Double,Double,Double,String>> getNewLatLon(double minTime, Iterable<org.apache.spark.sql.Row> rows){
+	public static Iterator<Tuple4<String,Integer,Integer,String>> getNewLatLon(double minTime, Iterable<org.apache.spark.sql.Row> rows){
 		Comparator<Tuple3<Double,String,String>> compareRows = new Comparator<Tuple3<Double,String,String>>(){
 			public int compare(Tuple3<Double,String,String> rowA,
 				Tuple3<Double,String,String> rowB){
@@ -83,10 +84,14 @@ public class CustomDecoder {
 			rowList.add(new Tuple3<Double,String,String>(new Double(row.getDouble(0)),row.getString(1),row.getString(2)));
 		Collections.sort(rowList,compareRows);
 
-		List<Tuple5<Integer,Double,Double,Double,String>> l = new ArrayList<Tuple5<Integer,Double,Double,Double,String>>();
+		//List<Tuple5<Integer,Double,Double,Double,String>> l = new ArrayList<Tuple5<Integer,Double,Double,Double,String>>();
+		List<Tuple4<String,Integer,Integer,String>> k = new ArrayList<Tuple4<String,Integer,Integer,String>>();
 
 		PositionDecoder localdec = new PositionDecoder();
 		int frameNum = 0;
+		int firstValidFrame = 0;
+		String positions = "";
+		String icao24 = "";
 		for(Tuple3<Double,String,String> row : rowList){
 			ModeSReply message;
 			try {
@@ -100,6 +105,7 @@ public class CustomDecoder {
 				case ADSB_AIRBORN_POSITION:
 					AirbornePositionMsg airpos = (AirbornePositionMsg) message;
 					airpos.setNICSupplementA(localdec.getNICSupplementA());
+					icao24 = row._3();
 					Position current = localdec.decodePosition(row._1(),airpos);
 					if (current != null){
 						if(frameNum == 0){
@@ -107,6 +113,7 @@ public class CustomDecoder {
 							frameNum++;
 							minTime += frameTime;
 							}
+							firstValidFrame = frameNum;
 						}
 						else if (minTime > row._1()){
 							continue;
@@ -115,13 +122,17 @@ public class CustomDecoder {
 							minTime += frameTime;
 							frameNum++;
 						}
-						l.add(new Tuple5<Integer,Double,Double,Double,String>(new Integer(frameNum),row._1(),current.getLatitude(),current.getLongitude(),row._3()));
+						positions += Double.toString(current.getLatitude()) + ";" + Double.toString(current.getLongitude()) + " ";
+						//l.add(new Tuple5<Integer,Double,Double,Double,String>(new Integer(frameNum),row._1(),current.getLatitude(),current.getLongitude(),row._3()));
 					}
 					break;
-					default : break;
+				default : break;
 			}
 		}
-		return l.iterator();
+		//return l.iterator();
+		k.add(new Tuple4<String,Integer,Integer,String>(icao24, new Integer(firstValidFrame), new Integer(frameNum), positions));
+		
+		return k.iterator();
 	}
 	
 
