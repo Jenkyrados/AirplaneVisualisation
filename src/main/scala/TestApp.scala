@@ -1,4 +1,3 @@
-
 /* TestApp.scala */
 import collection.JavaConverters._
 import org.apache.spark.SparkContext
@@ -37,9 +36,9 @@ object TestApp {
         .filter("icao != 'thisisanerror'")
         .rdd
     val minTime = rddicao.min()(new Ordering[org.apache.spark.sql.Row]() {
-  override def compare(x: org.apache.spark.sql.Row, y: org.apache.spark.sql.Row): Int = 
-      Ordering[Double].compare(x(0).asInstanceOf[Double], y(0).asInstanceOf[Double])
-});
+      override def compare(x: org.apache.spark.sql.Row, y: org.apache.spark.sql.Row): Int = 
+          Ordering[Double].compare(x(0).asInstanceOf[Double], y(0).asInstanceOf[Double])
+    });
     rddicao
         .groupBy(x => x(2))
         .flatMap(x => CustomDecoder.getNewLatLon(minTime(0).asInstanceOf[Double],x._2.asJava).asScala.toList)
