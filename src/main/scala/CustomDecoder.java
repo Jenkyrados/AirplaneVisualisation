@@ -130,7 +130,8 @@ public class CustomDecoder {
 			}
 		}
 		//return l.iterator();
-		k.add(new Tuple4<String,Integer,Integer,String>(icao24, new Integer(firstValidFrame), new Integer(frameNum), positions));
+		if( icao24 != "" && firstValidFrame > 0 )
+			k.add(new Tuple4<String,Integer,Integer,String>(icao24, new Integer(firstValidFrame), new Integer(frameNum), positions));
 		
 		return k.iterator();
 	}
