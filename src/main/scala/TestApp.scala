@@ -18,7 +18,7 @@ object TestApp {
     val sc = new SparkContext(conf)
     sc.setLogLevel("WARN")
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
-    deleteQuietly(new File("C:\\Users\\gabor\\Documents\\large.scale.data.engineering\\opensky\\out"))
+    deleteQuietly(new File("hdfs://hathi-surfsara/user/lsde07/out"))
 
     import sqlContext.implicits._
     val localGetIcao = (arg: String) => {CustomDecoder.getIcao(arg)}
@@ -29,7 +29,7 @@ object TestApp {
     //val sqlGetLatLon = udf(localGetLatLon)
 
     //val df = sqlContext.read.avro("C:\\Users\\gabor\\Documents\\large.scale.data.engineering\\opensky\\raw20150421_sample.avro")
-    val df = sqlContext.read.avro("C:\\Users\\gabor\\Documents\\large.scale.data.engineering\\opensky\\*.avro")
+    val df = sqlContext.read.avro("hdfs://hathi-surfsara/user/hannesm/lsde/opensky/*.avro")
     val rddicao = df
         .select("timeAtServer","rawMessage")
         .withColumn("icao",sqlGetIcao(df("rawMessage")))
@@ -42,7 +42,7 @@ object TestApp {
     rddicao
         .groupBy(x => x(2))
         .flatMap(x => CustomDecoder.getNewLatLon(minTime(0).asInstanceOf[Double],x._2.asJava).asScala.toList)
-        .map(a => a._1+","+a._2+","+a._3+","+a._4).saveAsTextFile("C:\\Users\\gabor\\Documents\\large.scale.data.engineering\\opensky\\out")
+        .map(a => a._1+","+a._2+","+a._3+","+a._4).saveAsTextFile("hdfs://hathi-surfsara/user/lsde07/out")
 /*      val dfLonLat = dficao.
        .withColumn("latlon",sqlGetLatLon(dficao("rawMessage"),dficao("timeAtServer")))
     dfLonLat.write.format("com.databricks.spark.csv").save("/Users/quentindauchy/Desktop/home.csv")

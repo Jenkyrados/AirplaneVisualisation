@@ -45,7 +45,7 @@ public class CustomDecoder {
 	// we store the position decoder for each aircraft
 	static HashMap<String, PositionDecoder> decs = new HashMap<String, PositionDecoder>();
 	private static PositionDecoder dec;
-	static final int frameTime = 60; // A frame = 1 min
+	static final int frameTime = 600; // A frame = 1 min
 	public static String getIcao(String raw){
 		ModeSReply message;
 		try {
