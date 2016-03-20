@@ -45,7 +45,9 @@ public class CustomDecoder {
 	// we store the position decoder for each aircraft
 	static HashMap<String, PositionDecoder> decs = new HashMap<String, PositionDecoder>();
 	private static PositionDecoder dec;
-	static final int frameTime = 600; // A frame = 1 min
+	static final int frameTime = 1200; // A frame = 20 min
+	static final int decodeLimiter = 5; // decode only k consecutive messages per frame
+	/*
 	public static String getIcao(String raw){
 		ModeSReply message;
 		try {
@@ -71,6 +73,34 @@ public class CustomDecoder {
 			default: return false;
 		}
 	}
+	*/
+	/* Filter messages with error / filter non-airborne messages */
+	public static String getIcaoForAirborneMsg(String raw) throws Exception {
+		ModeSReply msg;
+		String icao24;
+		
+		try {
+			msg = Decoder.genericDecoder(raw);
+		} catch (BadFormatException e) {
+			return "error";
+		}
+		
+		// check for erroneous messages; some receivers set
+		// parity field to the result of the CRC polynomial division
+		if (tools.isZero(msg.getParity()) || msg.checkParity()) { // CRC is ok
+			icao24 = tools.toHexString(msg.getIcao24());
+			
+			switch (msg.getType()) {
+			case ADSB_AIRBORN_POSITION:
+				return icao24;
+			default:
+				return "error";
+			}
+		}
+		else { // CRC failed
+			return "error";
+		}
+	}
 
 	public static Iterator<Tuple4<String,Integer,Integer,String>> getNewLatLon(double minTime, Iterable<org.apache.spark.sql.Row> rows){
 		Comparator<Tuple3<Double,String,String>> compareRows = new Comparator<Tuple3<Double,String,String>>(){
@@ -84,7 +114,6 @@ public class CustomDecoder {
 			rowList.add(new Tuple3<Double,String,String>(new Double(row.getDouble(0)),row.getString(1),row.getString(2)));
 		Collections.sort(rowList,compareRows);
 
-		//List<Tuple5<Integer,Double,Double,Double,String>> l = new ArrayList<Tuple5<Integer,Double,Double,Double,String>>();
 		List<Tuple4<String,Integer,Integer,String>> k = new ArrayList<Tuple4<String,Integer,Integer,String>>();
 
 		PositionDecoder localdec = new PositionDecoder();
@@ -123,7 +152,6 @@ public class CustomDecoder {
 							frameNum++;
 						}
 						positions += Double.toString(current.getLatitude()) + ";" + Double.toString(current.getLongitude()) + " ";
-						//l.add(new Tuple5<Integer,Double,Double,Double,String>(new Integer(frameNum),row._1(),current.getLatitude(),current.getLongitude(),row._3()));
 					}
 					break;
 				default : break;
