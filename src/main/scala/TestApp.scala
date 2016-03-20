@@ -29,7 +29,7 @@ object TestApp {
     //val sqlGetLatLon = udf(localGetLatLon)
 
     //val df = sqlContext.read.avro("C:\\Users\\gabor\\Documents\\large.scale.data.engineering\\opensky\\raw20150421_sample.avro")
-    val df = sqlContext.read.avro("hdfs://hathi-surfsara/user/hannesm/lsde/opensky/*.avro")
+    val df = sqlContext.read.avro("/Users/quentindauchy/truc/BigData/assign2/osky-sample/raw20150421_sample.avro")
     val rddicao = df
         .select("timeAtServer","rawMessage")
         .withColumn("icao",sqlGetIcao(df("rawMessage")))
@@ -42,7 +42,7 @@ object TestApp {
     rddicao
         .groupBy(x => x(2))
         .flatMap(x => CustomDecoder.getNewLatLon(minTime(0).asInstanceOf[Double],x._2.asJava).asScala.toList)
-        .map(a => a._1+","+a._2+","+a._3+","+a._4).saveAsTextFile("hdfs://hathi-surfsara/user/lsde07/out")
+        .map(a => a._1+","+a._2+","+a._3+","+a._4).coalesce(1,shuffle=true).saveAsTextFile("/Users/quentindauchy/Desktop/saves")
 /*      val dfLonLat = dficao.
        .withColumn("latlon",sqlGetLatLon(dficao("rawMessage"),dficao("timeAtServer")))
     dfLonLat.write.format("com.databricks.spark.csv").save("/Users/quentindauchy/Desktop/home.csv")
