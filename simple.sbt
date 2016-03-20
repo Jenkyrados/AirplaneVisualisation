@@ -12,4 +12,4 @@ libraryDependencies += "com.databricks" %% "spark-csv" % "1.4.0"
 libraryDependencies += "org.apache.spark" %% "spark-core" % "1.6.0"
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "1.6.0"
 
-libraryDependencies ~= { _.map(_.exclude("org.slf4j","slf4j-log4j12"))  }
+//libraryDependencies ~= { _.map(_.exclude("org.slf4j","slf4j-log4j12"))  }
