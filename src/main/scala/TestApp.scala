@@ -21,28 +21,27 @@ object TestApp {
     deleteQuietly(new File("hdfs://hathi-surfsara/user/lsde07/gabor_out"))
 
     import sqlContext.implicits._
-    val localGetIcao = (arg: String) => {CustomDecoder.getIcaoForAirborneMsg(arg)}
+    val localGetIcao = (arg: String) => {CustomDecoder.getIcao(arg)}
     val sqlGetIcao = udf(localGetIcao)
 
-    val df = sqlContext.read.avro("hdfs://hathi-surfsara/user/hannesm/lsde/opensky/raw2015090200.avro")
+    val df = sqlContext.read.avro("hdfs://hathi-surfsara/user/hannesm/lsde/opensky/*.avro")
     val rddicao = df
         .select("timeAtServer","rawMessage")
         .withColumn("icao",sqlGetIcao(df("rawMessage")))
-        .filter("icao != 'error'")
+        .filter("icao != 'thisisanerror'")
         .rdd
     val minTime = rddicao.min()(new Ordering[org.apache.spark.sql.Row]() {
       override def compare(x: org.apache.spark.sql.Row, y: org.apache.spark.sql.Row): Int = 
           Ordering[Double].compare(x(0).asInstanceOf[Double], y(0).asInstanceOf[Double])
     });
+
+    val r = scala.util.Random;
+
     rddicao
         .groupBy(x => x(2))
+        .sample(false, 0.1, r.nextInt(100))
         .flatMap(x => CustomDecoder.getNewLatLon(minTime(0).asInstanceOf[Double],x._2.asJava).asScala.toList)
-        .map(a => a._1+","+a._2+","+a._3+","+a._4).saveAsTextFile("hdfs://hathi-surfsara/user/lsde07/gabor_out")
-/*      val dfLonLat = dficao.
-       .withColumn("latlon",sqlGetLatLon(dficao("rawMessage"),dficao("timeAtServer")))
-    dfLonLat.write.format("com.databricks.spark.csv").save("/Users/quentindauchy/Desktop/home.csv")
-    dfLonLat.show
-    dfLonLat.printSchema
-*/  }
+        .map(a => a._1+","+a._2+","+a._3+","+a._4).coalesce(1, true).saveAsTextFile("hdfs://hathi-surfsara/user/lsde07/gabor_out")
+  }
 
 }

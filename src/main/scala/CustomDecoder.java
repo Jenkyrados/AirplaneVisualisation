@@ -45,9 +45,8 @@ public class CustomDecoder {
 	// we store the position decoder for each aircraft
 	static HashMap<String, PositionDecoder> decs = new HashMap<String, PositionDecoder>();
 	private static PositionDecoder dec;
-	static final int frameTime = 1200; // A frame = 20 min
-	static final int decodeLimiter = 5; // decode only k consecutive messages per frame
-	/*
+	static final int frameTime = 1800; // A frame = 30 min
+	
 	public static String getIcao(String raw){
 		ModeSReply message;
 		try {
@@ -71,34 +70,6 @@ public class CustomDecoder {
 		switch(msg.getType()){
 			case ADSB_AIRBORN_POSITION : return true;
 			default: return false;
-		}
-	}
-	*/
-	/* Filter messages with error / filter non-airborne messages */
-	public static String getIcaoForAirborneMsg(String raw) throws Exception {
-		ModeSReply msg;
-		String icao24;
-		
-		try {
-			msg = Decoder.genericDecoder(raw);
-		} catch (BadFormatException e) {
-			return "error";
-		}
-		
-		// check for erroneous messages; some receivers set
-		// parity field to the result of the CRC polynomial division
-		if (tools.isZero(msg.getParity()) || msg.checkParity()) { // CRC is ok
-			icao24 = tools.toHexString(msg.getIcao24());
-			
-			switch (msg.getType()) {
-			case ADSB_AIRBORN_POSITION:
-				return icao24;
-			default:
-				return "error";
-			}
-		}
-		else { // CRC failed
-			return "error";
 		}
 	}
 
@@ -157,7 +128,7 @@ public class CustomDecoder {
 				default : break;
 			}
 		}
-		//return l.iterator();
+
 		if( icao24 != "" && firstValidFrame > 0 )
 			k.add(new Tuple4<String,Integer,Integer,String>(icao24, new Integer(firstValidFrame), new Integer(frameNum), positions));
 		
