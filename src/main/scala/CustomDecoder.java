@@ -45,7 +45,7 @@ public class CustomDecoder {
 	// we store the position decoder for each aircraft
 	static HashMap<String, PositionDecoder> decs = new HashMap<String, PositionDecoder>();
 	private static PositionDecoder dec;
-	static final int frameTime = 1800; // A frame = 30 min
+	static final double frameTime = 1800; // A frame = 30 min
 	
 	public static String getIcao(String raw){
 		ModeSReply message;
@@ -110,8 +110,8 @@ public class CustomDecoder {
 					if (current != null){
 						if(frameNum == 0){
 							while(minTime < row._1()){
-							frameNum++;
-							minTime += frameTime;
+								frameNum++;
+								minTime += frameTime;
 							}
 							firstValidFrame = frameNum;
 						}
@@ -119,8 +119,10 @@ public class CustomDecoder {
 							continue;
 						}
 						else {
-							minTime += frameTime;
-							frameNum++;
+							while(minTime < row._1()){
+								frameNum++;
+								minTime += frameTime;
+							}
 						}
 						positions += Double.toString(current.getLatitude()) + ";" + Double.toString(current.getLongitude()) + " ";
 					}

@@ -168,7 +168,7 @@ background-repeat:no-repeat;
 
       // Linestrings will have to be created after the world to be visible, same for points.
 
-    d3.csv("example.csv"+ '?' + Math.floor(Math.random() * 1000), function(error, data) {
+    d3.csv("part-00000"+ '?' + Math.floor(Math.random() * 1000), function(error, data) {
       data.forEach(function(d){
         routes2[d.Id] = svg.append("path")
         .datum({type: "LineString", coordinates : d.Values.split(' ').map(function(e){return e.split(';').map(Number);})})
