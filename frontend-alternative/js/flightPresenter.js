@@ -20,6 +20,8 @@
 	Presenter.prototype.currentFrame = 0;
 	Presenter.prototype.maxFrame = 0;
 	Presenter.prototype.routes = {};
+	Presenter.prototype.routes_svg = {};
+	Presenter.prototype.lineId = 0;
 	Presenter.prototype.slider = null;
 
 	Presenter.prototype.draw = function() {
@@ -61,6 +63,7 @@
         
         			var rotate = self.projection.rotate();
         			self.projection.rotate([d3.event.x * self.sens, -d3.event.y * self.sens, rotate[2]]);
+        			self.update(self.currentFrame);
         			self.svg.selectAll("path").attr("d", self.path);
   				}));
 
@@ -92,6 +95,7 @@
 	        
 	        			var rotate = self.projection.rotate();
 	        			self.projection.rotate([d3.event.x * self.sens, -d3.event.y * self.sens, rotate[2]]);
+	        			self.update(self.currentFrame);
 	        			self.svg.selectAll("path").attr("d", self.path);
 	  				}));
 		});
@@ -103,6 +107,7 @@
 
 		d3.csv("part-00000"+ '?' + Math.floor(Math.random() * 1000), function(error, res) {
 			res.forEach(function(data) {
+				/*
 				var obj = {};
 				obj[+data.Start] = data.Values.split(' ');
 				obj[+data.Start].pop();
@@ -111,6 +116,14 @@
 				if (self.maxFrame < endFrame) self.maxFrame = endFrame;
 
 				self.routes[data.Id] = obj;
+				*/
+				self.routes_svg[self.lineId] = self.svg.append("path")
+        			.attr("start", +data.Start)
+        			.attr("end", +data.End);
+        		if (self.maxFrame < +data.End) self.maxFrame = +data.End;
+
+        		self.routes[self.lineId] = data.Values.split(' ').map(function(e){return e.split(';').map(Number);});
+        		self.lineId++;
 			});
 			console.log("MaxFrame: ", self.maxFrame);
 			self.createSlider();
@@ -118,20 +131,59 @@
 
 	}
 
+	Presenter.prototype.transition = function(i) {
+		var self = this;
+	    var n = 0
+	    d3.selectAll(".point")
+	        .each(function(){
+	          n++;
+	        })
+	    if (n!= 0)
+	    d3.selectAll(".point")
+	        .transition()
+	        .remove()
+	        .each('end',function(){n--; if(n<=0){self.update(i)}});
+	    else self.update(i);
+	};
+
+	Presenter.prototype.update = function(frame) {
+		var self = this;
+
+		for(var key in this.routes){
+          var d = this.routes[key];
+          var r = this.routes_svg[key];
+
+          if (r.attr("start") > frame || r.attr("end") <= frame)
+            continue;
+          
+          this.svg.append("path")
+          .datum({type : "Point",coordinates :[d[frame-r.attr("start")][0],d[frame-r.attr("start")][1]]})
+          .attr("d", self.path.pointRadius(2))
+          .attr("class","point")
+        }
+
+	}
+
 	Presenter.prototype.createSlider = function() {
 
+		var self = this;
 		var sliderScale = d3.scale.linear().domain([0, this.maxFrame]);
 		var val = this.slider ? this.slider.value() : 0;
 
 		this.slider = d3.slider()
     		.scale( sliderScale )
-    		.on("slide",function(event,value){
-    			//console.log(value);
+    		.on("slide",function(event, value){
+    			self.currentFrame = value;
+      			self.transition(value);
     		})
     		.value(val);
 
     	d3.select("#slider")
     		.call( this.slider );
+
+    	d3.select("#slider-div a").on("mousemove",function(){
+     		d3.event.stopPropagation();
+    	});
 
 	}
 
