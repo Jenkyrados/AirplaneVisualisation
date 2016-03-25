@@ -23,6 +23,8 @@
 	Presenter.prototype.routes_svg = {};
 	Presenter.prototype.lineId = 0;
 	Presenter.prototype.slider = null;
+	Presenter.prototype.isPlaying = false;
+	Presenter.prototype.interval;
 
 	Presenter.prototype.draw = function() {
 
@@ -57,6 +59,9 @@
   			.call(d3.behavior.drag()
     			.origin(function() { var r = self.projection.rotate(); return {x: r[0] / self.sens, y: -r[1] / self.sens}; })
     			.on("drag", function() {
+    				var wasPlaying = self.isPlaying;
+    				self.isPlaying = false;
+
         			d3.selectAll(".point")
           				.transition()
           				.remove()
@@ -64,6 +69,7 @@
         			var rotate = self.projection.rotate();
         			self.projection.rotate([d3.event.x * self.sens, -d3.event.y * self.sens, rotate[2]]);
         			self.update(self.currentFrame);
+        			self.isPlaying = wasPlaying;
         			self.svg.selectAll("path").attr("d", self.path);
   				}));
 
@@ -89,6 +95,9 @@
     			.call(d3.behavior.drag()
 	    			.origin(function() { var r = self.projection.rotate(); return {x: r[0] / self.sens, y: -r[1] / self.sens}; })
 	    			.on("drag", function() {
+	    				var wasPlaying = self.isPlaying;
+    					self.isPlaying = false;
+
 	        			d3.selectAll(".point")
 	          				.transition()
 	          				.remove()
@@ -96,6 +105,7 @@
 	        			var rotate = self.projection.rotate();
 	        			self.projection.rotate([d3.event.x * self.sens, -d3.event.y * self.sens, rotate[2]]);
 	        			self.update(self.currentFrame);
+	        			self.isPlaying = wasPlaying;
 	        			self.svg.selectAll("path").attr("d", self.path);
 	  				}));
 		});
@@ -172,9 +182,18 @@
 		this.slider = d3.slider()
     		.scale( sliderScale )
     		.on("slide",function(event, value){
+    			if ( self.isPlaying ){
+        			clearInterval( self.interval );
+      			}
     			self.currentFrame = value;
       			self.transition(value);
     		})
+    		.on("slideend",function(){
+		      if ( self.isPlaying ) self.animate();
+		    })
+		    .on("slidestart",function(){
+		      d3.select("#slider").on("mousemove",null)
+		    })
     		.value(val);
 
     	d3.select("#slider")
@@ -186,12 +205,59 @@
 
 	}
 
+	Presenter.prototype.animate = function() {
+
+		var self = this;
+
+	  	this.interval = setInterval( function() {
+
+		    self.currentFrame++;
+
+		    if ( self.currentFrame == self.maxFrame +1 ) self.currentFrame = 0;
+
+		    d3.select("#slider .d3-slider-handle").style("left", 100*self.currentFrame/self.maxFrame + "%" );
+		    self.slider.value(self.currentFrame)
+
+		    self.transition(self.currentFrame);
+
+		    if ( self.currentFrame == self.maxFrame || self.isPlaying == false){
+		      self.isPlaying = false;
+		      d3.select("#play").classed("pause",false).attr("title","Play animation");
+		      clearInterval( self.interval );
+		      return;
+		    }
+
+	  }, 1000);
+
+	}
+
+	Presenter.prototype.registerListeners = function() {
+
+		var self = this;
+
+		d3.select("#play")
+	      .attr("title","Play animation")
+	      .on("click",function(){
+	        if ( !self.isPlaying ){
+	          self.isPlaying = true;
+	          d3.select(this).classed("pause",true).attr("title","Pause animation");
+	          self.animate();
+	        } else {
+	          self.isPlaying = false;
+	          d3.select(this).classed("pause",false).attr("title","Play animation");
+	          clearInterval( self.interval );
+	        }
+      	});
+
+	}
+
 	/* RENDERING */
 	$(function(){
 
 		var presenter = new Presenter('#globeCanvas', {'width': 600, 'height': 600, 'scale': 275});
 
 		presenter.draw();
+		presenter.registerListeners();
 
 	});
 
