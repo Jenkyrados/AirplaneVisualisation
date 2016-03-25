@@ -125,7 +125,6 @@
         		self.routes[self.lineId] = data.Values.split(' ').map(function(e){return e.split(';').map(Number);});
         		self.lineId++;
 			});
-			console.log("MaxFrame: ", self.maxFrame);
 			self.createSlider();
 		});
 
@@ -190,7 +189,7 @@
 	/* RENDERING */
 	$(function(){
 
-		var presenter = new Presenter('#globeCanvas', {'width': 700, 'height': 700, 'scale': 275});
+		var presenter = new Presenter('#globeCanvas', {'width': 600, 'height': 600, 'scale': 275});
 
 		presenter.draw();
 
