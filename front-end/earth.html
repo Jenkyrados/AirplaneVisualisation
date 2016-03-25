@@ -39,7 +39,7 @@ path {
   display: inline-block;
   vertical-align: middle;
   margin-top: 20px;
-  width:100px;
+  width:500px;
 }
 #play{
   width: 53px;
@@ -80,7 +80,8 @@ background-repeat:no-repeat;
   frameLength=1000,
   isPlaying=false,
   interval,
-  slider;
+  slider,
+  lineId = 0;
 
   //Setting projection
 
@@ -170,16 +171,13 @@ background-repeat:no-repeat;
 
     d3.csv("part-00000"+ '?' + Math.floor(Math.random() * 1000), function(error, data) {
       data.forEach(function(d){
-        routes2[d.Id] = svg.append("path")
-        .datum({type: "LineString", coordinates : d.Values.split(' ').map(function(e){return e.split(';').map(Number);})})
-        .attr("class", "route")
-        .attr("d",path)
+        routes2[lineId] = svg.append("path")
         .attr("start", +d.Start)
         .attr("end", +d.End);
         if (maxFrame < +d.End)
           maxFrame = +d.End;
-        routes[d.Id] = d.Values.split(' ').map(function(e){return e.split(';').map(Number);});
-
+        routes[lineId] = d.Values.split(' ').map(function(e){return e.split(';').map(Number);});
+        lineId++;
         });
       createSlider();
 
@@ -224,7 +222,7 @@ background-repeat:no-repeat;
           
           svg.append("path")
           .datum({type : "Point",coordinates :[d[i-r.attr("start")][0],d[i-r.attr("start")][1]]})
-          .attr("d",path.pointRadius(5))
+          .attr("d",path.pointRadius(2))
           .attr("class","point")
         }
   }
