@@ -13,6 +13,15 @@
 	text-align: center;
 }
 
+#slider-container {
+	text-align: center;
+	padding-top: 50px;
+}
+
+.d3-slider-handle {
+	height: 1.7em;
+}
+
 .water {
   fill: #00248F;
 }

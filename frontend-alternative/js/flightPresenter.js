@@ -1,4 +1,4 @@
-;(function($, d3, d3zoom, topojson) {
+;(function($, d3, d3zoom, topojson, undefined) {
 	'use strict';
 
 	if( typeof $ === 'undefined' || typeof d3 === 'undefined' || typeof topojson === 'undefined' || typeof d3.geo.zoom == 'undefined' ) {
@@ -15,8 +15,12 @@
 		this.path		= null;
 		this.svg		= null;
 		this.container	= container || 'body';
-		this.data   	= {};
 	}
+
+	Presenter.prototype.currentFrame = 0;
+	Presenter.prototype.maxFrame = 0;
+	Presenter.prototype.routes = {};
+	Presenter.prototype.slider = null;
 
 	Presenter.prototype.draw = function() {
 
@@ -61,6 +65,7 @@
   				}));
 
 		this.loadCountries();
+		this.loadFlights();
 
 	}
 
@@ -90,6 +95,44 @@
 	        			self.svg.selectAll("path").attr("d", self.path);
 	  				}));
 		});
+	}
+
+	Presenter.prototype.loadFlights = function() {
+
+		var self = this;
+
+		d3.csv("part-00000"+ '?' + Math.floor(Math.random() * 1000), function(error, res) {
+			res.forEach(function(data) {
+				var obj = {};
+				obj[+data.Start] = data.Values.split(' ');
+				obj[+data.Start].pop();
+
+				var endFrame = +data.Start + obj[data.Start].length - 1;
+				if (self.maxFrame < endFrame) self.maxFrame = endFrame;
+
+				self.routes[data.Id] = obj;
+			});
+			console.log("MaxFrame: ", self.maxFrame);
+			self.createSlider();
+		});
+
+	}
+
+	Presenter.prototype.createSlider = function() {
+
+		var sliderScale = d3.scale.linear().domain([0, this.maxFrame]);
+		var val = this.slider ? this.slider.value() : 0;
+
+		this.slider = d3.slider()
+    		.scale( sliderScale )
+    		.on("slide",function(event,value){
+    			//console.log(value);
+    		})
+    		.value(val);
+
+    	d3.select("#slider")
+    		.call( this.slider );
+
 	}
 
 	/* RENDERING */
