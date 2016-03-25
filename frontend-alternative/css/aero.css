@@ -1,0 +1,38 @@
+@charset "UTF-8";
+
+#page-wrapper {
+	padding-top: 50px;
+}
+
+.navbar-inverse .navbar-brand {
+	font-size: 24px;
+	color: #fff;
+}
+
+#globeCanvas {
+	text-align: center;
+}
+
+.water {
+  fill: #00248F;
+}
+
+.path {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.land {
+  fill: #A98B6F;
+  stroke: #FFF;
+  stroke-width: 0.7px;
+}
+
+.route {
+  stroke: red;
+  stroke-width: 2px;
+}
+.point {
+    fill: red;
+    opacity:0.7;
+}

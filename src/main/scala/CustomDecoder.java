@@ -90,6 +90,7 @@ public class CustomDecoder {
 		PositionDecoder localdec = new PositionDecoder();
 		int frameNum = 0;
 		int firstValidFrame = 0;
+		int frameWidth = 0;
 		String positions = "";
 		String icao24 = "";
 		for(Tuple3<Double,String,String> row : rowList){
@@ -117,14 +118,21 @@ public class CustomDecoder {
 						}
 						else if (minTime > row._1()){
 							continue;
-						}
+						} 
 						else {
 							while(minTime < row._1()){
 								frameNum++;
 								minTime += frameTime;
+								frameWidth++;
 							}
 						}
-						positions += Double.toString(current.getLatitude()) + ";" + Double.toString(current.getLongitude()) + " ";
+						if (frameWidth > 1) {
+							k.add(new Tuple4<String,Integer,Integer,String>(icao24, new Integer(firstValidFrame), new Integer(frameNum-frameWidth), positions));
+							positions = "";
+							firstValidFrame = frameNum;
+						}
+						positions += Double.toString(current.getLongitude()) + ";" + Double.toString(current.getLatitude()) + " ";
+						frameWidth = 0;
 					}
 					break;
 				default : break;

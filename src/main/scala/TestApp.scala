@@ -14,11 +14,11 @@ import treater._
 
 object TestApp {
   def main(args: Array[String]) {
-    val conf = new SparkConf().setAppName("Simple Application")
+    val conf = new SparkConf().setAppName("Aero Spark")
     val sc = new SparkContext(conf)
     sc.setLogLevel("WARN")
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
-    deleteQuietly(new File("hdfs://hathi-surfsara/user/lsde07/out"))
+    deleteQuietly(new File("hdfs://hathi-surfsara/user/lsde07/final_out"))
 
     import sqlContext.implicits._
     val localGetIcao = (arg: String) => {CustomDecoder.getIcao(arg)}
@@ -41,7 +41,7 @@ object TestApp {
         .groupBy(x => x(2))
         .sample(false, 0.1, r.nextInt(100))
         .flatMap(x => CustomDecoder.getNewLatLon(minTime(0).asInstanceOf[Double],x._2.asJava).asScala.toList)
-        .map(a => a._1+","+a._2+","+a._3+","+a._4).coalesce(1, true).saveAsTextFile("hdfs://hathi-surfsara/user/lsde07/out")
+        .map(a => a._1+","+a._2+","+a._3+","+a._4).coalesce(1, true).saveAsTextFile("hdfs://hathi-surfsara/user/lsde07/final_out")
   }
 
 }
