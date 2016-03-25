@@ -31,6 +31,7 @@ path {
   stroke-width: 2px;
 }
 .point {
+
     fill: red;
     opacity:0.7;
     }
@@ -39,7 +40,7 @@ path {
   display: inline-block;
   vertical-align: middle;
   margin-top: 20px;
-  width:100px;
+  width:500px;
 }
 #play{
   width: 53px;
@@ -171,9 +172,6 @@ background-repeat:no-repeat;
     d3.csv("example.csv"+ '?' + Math.floor(Math.random() * 1000), function(error, data) {
       data.forEach(function(d){
         routes2[d.Id] = svg.append("path")
-        .datum({type: "LineString", coordinates : d.Values.split(' ').map(function(e){return e.split(';').map(Number);})})
-        .attr("class", "route")
-        .attr("d",path)
         .attr("start", +d.Start)
         .attr("end", +d.End);
         if (maxFrame < +d.End)
@@ -221,10 +219,11 @@ background-repeat:no-repeat;
 
           if (r.attr("start") > i || r.attr("end") <=i)
             continue;
-          
+          if (d[i-r.attr("start")][1] == 0 || d[i-r.attr("start")][0] == 0)
+            continue;
           svg.append("path")
-          .datum({type : "Point",coordinates :[d[i-r.attr("start")][0],d[i-r.attr("start")][1]]})
-          .attr("d",path.pointRadius(5))
+          .datum({type : "Point",coordinates :[d[i-r.attr("start")][1],d[i-r.attr("start")][0]]})
+          .attr("d",path.pointRadius(2))
           .attr("class","point")
         }
   }
